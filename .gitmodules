@@ -1,0 +1,3 @@
+[submodule "pyro"]
+	path = pyro
+	url = git@github.com:pyro-ppl/pyro.git
