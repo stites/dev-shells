@@ -1,0 +1,3 @@
+NAME="$(basename $(git rev-parse --show-toplevel))"
+use flake ~/git/dev-shells/$NAME
+eval "$shellHook"
