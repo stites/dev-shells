@@ -1,6 +1,8 @@
 {
-  description = "Pyro";
+  nixConfig.extra-substituters = "https://stites.cachix.org";
+  nixConfig.extra-trusted-public-keys = "stites.cachix.org-1:JN1rOOglf6VA+2aFsZnpkGUFfutdBIP1LbANgiJ940s=";
 
+  description = "Pyro dev shell";
   inputs = rec {
     flake-utils.url = "github:numtide/flake-utils";
     devshell.url = "github:numtide/devshell";
@@ -64,6 +66,7 @@
             "opt_einsum>=2.3.2"
             "pyro-api>=0.1.1"
             "torch>=1.9.0"
+            "tensorboard" # just for tensorboard visualizations
             "tqdm>=4.36"
             "parso<0.9.0" # loose transitive dep of jedi, which is also a loose transitive dep
 
@@ -116,6 +119,7 @@
             watchexec
             rsync
             git
+            oil
           ];
 
           # applying patch: https://github.com/microsoft/pyright/issues/565

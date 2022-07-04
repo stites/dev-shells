@@ -3,12 +3,12 @@
   nixConfig.extra-trusted-public-keys = "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=";
 
   inputs = {
-    cargo2nix.url = "github:cargo2nix/cargo2nix/master";
-    flake-utils.url = "github:numtide/flake-utils";
-    rust-overlay.url = "github:oxalica/rust-overlay";
-    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
-    rust-overlay.inputs.flake-utils.follows = "flake-utils";
-    nixpkgs.url = "github:nixos/nixpkgs?ref=release-21.11";
+    cargo2nix.url = "github:cargo2nix/cargo2nix/release-0.11.0";
+
+    rust-overlay.follows = "cargo2nix/rust-overlay";
+    nixpkgs.follows = "cargo2nix/nixpkgs";
+    flake-utils.follows = "cargo2nix/flake-utils";
+
     devshell.url = "github:numtide/devshell";
     devshell.inputs.nixpkgs.follows = "nixpkgs";
     devshell.inputs.flake-utils.follows = "flake-utils";
@@ -19,7 +19,7 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [cargo2nix.overlay rust-overlay.overlay devshell.overlay];
+          overlays = [cargo2nix.overlays.default rust-overlay.overlay devshell.overlay];
         };
 
         rustPkgs = pkgs.rustBuilder.makePackageSet {
@@ -37,14 +37,23 @@
                 ];
               };
             })
-            #(pkgs.rustBuilder.rustLib.makeOverride {
-            #  name = "minisat";
-            #  overrideAttrs = old: {
-            #    propagatedBuildInputs = old.propagatedBuildInputs ++ [ pkgs.llvmPackages.libclang ];
-            #    # LIBCLANG_PATH = pkgs.lib.makeLibraryPath [ pkgs.llvmPackages.libclang.lib ];
-            #  };
-            #})
-          ];
+          ] ++ (let
+            mk-sys-package = name: _pkg: pkgs.rustBuilder.rustLib.makeOverride {
+              inherit name;
+              overrideAttrs = drv: {
+                propagatedBuildInputs = drv.propagatedBuildInputs ++ (with pkgs; [
+                  cmake pkg-config _pkg
+                ]);
+                propagatedNativeBuildInputs = (if builtins.hasAttr drv "propagatedNativeBuildInputs" then drv.propagatedNativeBuildInputs else []) ++ (with pkgs; [
+                  cmake pkg-config _pkg
+                ]);
+              };
+            };
+          in [
+            (mk-sys-package "expat-sys" pkgs.expat)
+            (mk-sys-package "freetype-sys" pkgs.freetype)
+            (mk-sys-package "fontconfig-sys" pkgs.fontconfig)
+          ]);
         };
 
         # The workspace defines a development shell with all of the dependencies
@@ -55,6 +64,11 @@
             cargo-watch
             rustfmt
             nixpkgs-fmt
+            cargo2nix.packages.${system}.cargo2nix
+          ]);
+          nativeBuildInputs = (with pkgs; [
+            # for plotters / servo-fontconfig-sys. Helps to symlink /etc/profiles/per-user/$USER/bin/file to /usr/bin/file
+            cmake pkg-config freetype expat fontconfig
           ]);
 
           LIBCLANG_PATH = pkgs.lib.makeLibraryPath [ pkgs.llvmPackages.libclang.lib ];
@@ -81,15 +95,13 @@
           ];
         };
 
-
       in rec {
-        # nix develop
+        # nix develop is currently the only output
         devShell = workspaceShell;
-
-        packages = {
-          collapsed-gibbs = (rustPkgs.workspace.collapsed-gibbs {}).bin;
+        packages =  {
+          main = (rustPkgs.workspace.monte-carlo-strategies-in-scientific-computing {}).bin;
         };
-        defaultPackage = packages.collapsed-gibbs;
+        defaultPackage = packages.main;
       }
     );
 }
