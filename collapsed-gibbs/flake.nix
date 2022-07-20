@@ -3,12 +3,17 @@
   nixConfig.extra-trusted-public-keys = "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=";
 
   inputs = {
-    cargo2nix.url = "github:cargo2nix/cargo2nix/master";
-    flake-utils.url = "github:numtide/flake-utils";
-    rust-overlay.url = "github:oxalica/rust-overlay";
-    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
-    rust-overlay.inputs.flake-utils.follows = "flake-utils";
-    nixpkgs.url = "github:nixos/nixpkgs?ref=release-21.11";
+    cargo2nix.url        = "github:cargo2nix/cargo2nix";
+    flake-utils.follows  = "cargo2nix/flake-utils";
+    rust-overlay.follows = "cargo2nix/rust-overlay";
+    nixpkgs.follows      = "cargo2nix/nixpkgs";
+
+    # flake-utils.url = "github:numtide/flake-utils";
+    # #rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
+    # #rust-overlay.inputs.flake-utils.follows = "flake-utils";
+    # #nixpkgs.url = "github:nixos/nixpkgs?ref=release-21.11";
+    # #nixpkgs.follows = "github:nixos/nixpkgs?ref=release-21.11";
+
     devshell.url = "github:numtide/devshell";
     devshell.inputs.nixpkgs.follows = "nixpkgs";
     devshell.inputs.flake-utils.follows = "flake-utils";
@@ -19,11 +24,12 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [cargo2nix.overlay rust-overlay.overlay devshell.overlay];
+          overlays = [cargo2nix.overlays.default rust-overlay.overlay devshell.overlay];
         };
 
         rustPkgs = pkgs.rustBuilder.makePackageSet {
-          rustVersion = "1.60.0";
+          # rustVersion = "1.60.0";
+          rustChannel = "nightly";
 
           packageFun = import ./Cargo.nix;
 
@@ -37,13 +43,6 @@
                 ];
               };
             })
-            #(pkgs.rustBuilder.rustLib.makeOverride {
-            #  name = "minisat";
-            #  overrideAttrs = old: {
-            #    propagatedBuildInputs = old.propagatedBuildInputs ++ [ pkgs.llvmPackages.libclang ];
-            #    # LIBCLANG_PATH = pkgs.lib.makeLibraryPath [ pkgs.llvmPackages.libclang.lib ];
-            #  };
-            #})
           ];
         };
 
@@ -52,35 +51,22 @@
         workspaceShell = rustPkgs.workspaceShell {
           buildInputs = (with pkgs; [
             watchexec
+            cargo
             cargo-watch
             rustfmt
             nixpkgs-fmt
+            lldb
+
+            # required for influxdb dependency
+            openssl.dev
+            pkg-config
           ]);
 
           LIBCLANG_PATH = pkgs.lib.makeLibraryPath [ pkgs.llvmPackages.libclang.lib ];
           RUST_SRC_PATH = workspaceShell.RUST_SRC_PATH;
+          RUSTFLAGS = "-Awarnings";
+          RUST_BACKTRACE = "1";
         };
-
-        oldshell = pkgs.devshell.mkShell {
-          devshell.packages = workspaceShell.nativeBuildInputs ++ workspaceShell.buildInputs;
-          env = [
-            {
-            name = "LIBCLANG_PATH";
-            value = pkgs.lib.makeLibraryPath [ pkgs.llvmPackages.libclang.lib ];
-            }
-            {
-            name = "RUST_SRC_PATH";
-            value = workspaceShell.RUST_SRC_PATH;
-            }
-          ];
-          commands = [
-            {category = "development"; package = pkgs.watchexec;}
-            {category = "development"; package = pkgs.cargo-watch;}
-            {category = "formatting"; package = pkgs.rustfmt;}
-            {category = "formatting"; package = pkgs.nixpkgs-fmt;}
-          ];
-        };
-
 
       in rec {
         # nix develop
