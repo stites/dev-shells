@@ -83,7 +83,13 @@
               if [[ $clear -eq 1 ]]; then
                 echo "deleting all files in ''${logdir}"
                 rm -rf ''${logdir}
+              else
+                logsize=$(${coreutils}/bin/du -bs ''${logdir} 2>/dev/null | cut -f1)
+                if [[ "$logsize" -ge 1073741824 ]]; then
+                  echo "[WARNING] $logdir over 1GiB"
+                fi
               fi
+              echo "tensorboard serve --bind_all --logdir ''${logdir}"
               tensorboard serve --bind_all --logdir ''${logdir}
             '')
           ];
