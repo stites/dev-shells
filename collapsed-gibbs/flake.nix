@@ -49,7 +49,11 @@
         # The workspace defines a development shell with all of the dependencies
         # and environment settings necessary for a regular `cargo build`
         workspaceShell = rustPkgs.workspaceShell {
-          buildInputs = (with pkgs; [
+          buildInputs = with pkgs; let
+            tensorboard = pkgs.writeScriptBin "tensorboard" ''
+              ${python39Packages.tensorboard}/bin/tensorboard $@
+            '';
+          in [
             watchexec
             cargo
             cargo-watch
@@ -60,7 +64,29 @@
             # required for influxdb dependency
             openssl.dev
             pkg-config
-          ]);
+
+            # tensorboard tooling
+            tensorboard
+            (pkgs.writeScriptBin "serve" ''
+              rootdir=$(git rev-parse --show-toplevel)
+              logdir=''${rootdir}/logs
+              clear=0
+              while [[ "$1" =~ ^- && ! "$1" == "--" ]]; do case $1 in
+                -l | --logdir )
+                  shift; logdir=$1
+                  ;;
+                -c | --clear )
+                  clear=1
+                  ;;
+              esac; shift; done
+              if [[ "$1" == '--' ]]; then shift; fi
+              if [[ $clear -eq 1 ]]; then
+                echo "deleting all files in ''${logdir}"
+                rm -rf ''${logdir}
+              fi
+              tensorboard serve --bind_all --logdir ''${logdir}
+            '')
+          ];
 
           LIBCLANG_PATH = pkgs.lib.makeLibraryPath [ pkgs.llvmPackages.libclang.lib ];
           RUST_SRC_PATH = workspaceShell.RUST_SRC_PATH;
