@@ -61,6 +61,16 @@
             nixpkgs-fmt
             lldb
 
+            # required for profiling
+            perf-tools
+            linuxPackages.perf
+            linuxPackages.bcc
+            linuxPackages.bpftrace
+            heaptrack
+            valgrind
+            cargo-valgrind
+
+
             # required for influxdb dependency
             openssl.dev
             pkg-config
