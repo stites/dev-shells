@@ -4,10 +4,17 @@
 
   inputs = {
     cargo2nix.url        = "github:cargo2nix/cargo2nix";
-    flake-utils.follows  = "cargo2nix/flake-utils";
-    rust-overlay.follows = "cargo2nix/rust-overlay";
-    nixpkgs.follows      = "cargo2nix/nixpkgs";
+    cargo2nix.inputs.nixpkgs.follows = "nixpkgs";
+    cargo2nix.inputs.rust-overlay.follows = "rust-overlay";
 
+    nixpkgs.url = "github:nixos/nixpkgs?ref=release-22.05";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
+
+    flake-utils.follows  = "cargo2nix/flake-utils";
     # flake-utils.url = "github:numtide/flake-utils";
     # #rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
     # #rust-overlay.inputs.flake-utils.follows = "flake-utils";
@@ -28,8 +35,8 @@
         };
 
         rustPkgs = pkgs.rustBuilder.makePackageSet {
-          # rustVersion = "1.60.0";
-          rustChannel = "nightly";
+          rustVersion = "1.63.0";
+          #rustChannel = "nightly";
 
           packageFun = import ./Cargo.nix;
 
