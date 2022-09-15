@@ -64,6 +64,7 @@
             watchexec
             cargo
             cargo-watch
+            rustracer
             rustfmt
             nixpkgs-fmt
             lldb
