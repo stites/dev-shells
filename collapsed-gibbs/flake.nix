@@ -61,8 +61,10 @@
               ${python39Packages.tensorboard}/bin/tensorboard $@
             '';
           in [
+            rust-bin.stable.latest.default
             watchexec
-            cargo
+            # cargo
+            # clippy
             cargo-watch
             rustracer
             rustfmt
@@ -77,7 +79,6 @@
             heaptrack
             valgrind
             cargo-valgrind
-
 
             # required for influxdb dependency
             openssl.dev
